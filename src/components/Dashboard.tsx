@@ -300,7 +300,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 <span className="text-gray-600">Loading data...</span>
               </div>
             ) : (
-            {activeTab === 'dashboard' ? (
+            activeTab === 'dashboard' ? (
               <DashboardContent 
                 onNavigateToRetailerTagging={() => setActiveTab('retailer-tagging')}
                 onNavigateToQueries={() => setActiveTab('queries')}
@@ -356,7 +356,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 branchAccounts={branchAccounts} 
                 onCallUpdate={handleCallUpdate}
               />
-            )}
             )}
           </div>
         </main>
