@@ -1,38 +1,14 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Shield, Users } from 'lucide-react';
+import { auth } from '../lib/supabase';
 
 interface LoginPageProps {
   onLogin: (userData: any) => void;
 }
 
-// Local test accounts for demonstration
-const testAccounts = [
-  {
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Administrator',
-    poc: null // Admin can see all data
-  },
-  {
-    username: 'john.doe',
-    password: 'john123',
-    role: 'employee',
-    name: 'John Doe',
-    poc: 'John Doe' // Will see only data where POC = 'John Doe'
-  },
-  {
-    username: 'jane.smith',
-    password: 'jane123',
-    role: 'employee',
-    name: 'Jane Smith',
-    poc: 'Jane Smith' // Will see only data where POC = 'Jane Smith'
-  }
-];
-
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -44,22 +20,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setIsLoading(true);
     setError('');
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // Find matching account
-      const matchingAccount = testAccounts.find(
-        account => 
-          account.username === credentials.username &&
-          account.password === credentials.password
-      );
-
-      if (matchingAccount) {
-        onLogin(matchingAccount);
-      } else {
-        setError('Invalid credentials. Check the demo accounts below.');
+    try {
+      const { data, error } = await auth.signIn(credentials.email, credentials.password);
+      
+      if (error) {
+        setError(error.message);
+      } else if (data.user) {
+        // Pass the Supabase user object to the parent component
+        onLogin(data.user);
       }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,17 +84,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             )}
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
               </label>
               <input
-                id="username"
-                name="username"
-                type="text"
+                id="email"
+                name="email"
+                type="email"
                 required
                 className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
-                placeholder="Enter your username"
-                value={credentials.username}
+                placeholder="Enter your email address"
+                value={credentials.email}
                 onChange={handleInputChange}
               />
             </div>
@@ -178,7 +152,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </div>
         </form>
 
-        {/* Demo Accounts */}
+        {/* Instructions */}
         <div className="text-center">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
             <h4 className="text-sm font-medium text-blue-800 mb-3">Demo Accounts</h4>
@@ -186,32 +160,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             {/* Admin Account */}
             <div className="bg-white rounded p-3 border border-blue-100">
               <p className="text-xs font-medium text-blue-800 mb-1">Admin Account (Full Access)</p>
-              <p className="text-xs text-blue-700">
-                Username: <code className="bg-blue-100 px-1 rounded">admin</code> | 
-                Password: <code className="bg-blue-100 px-1 rounded">admin123</code>
-              </p>
-            </div>
-
-            {/* Employee Accounts */}
-            <div className="bg-white rounded p-3 border border-blue-100">
-              <p className="text-xs font-medium text-blue-800 mb-1">Employee Account 1 (POC: John Doe)</p>
-              <p className="text-xs text-blue-700">
-                Username: <code className="bg-blue-100 px-1 rounded">john.doe</code> | 
-                Password: <code className="bg-blue-100 px-1 rounded">john123</code>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-            <div className="bg-white rounded p-3 border border-blue-100">
-              <p className="text-xs font-medium text-blue-800 mb-1">Employee Account 2 (POC: Jane Smith)</p>
-              <p className="text-xs text-blue-700">
-                Username: <code className="bg-blue-100 px-1 rounded">jane.smith</code> | 
-                Password: <code className="bg-blue-100 px-1 rounded">jane123</code>
-              </p>
-            </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-blue-800 mb-2">Authentication</h4>
+            <p className="text-xs text-blue-700">
+              Sign in with your Supabase account credentials. If you don't have an account, 
+              please contact your administrator to create one for you.
+            </p>
 export default LoginPage;
