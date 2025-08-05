@@ -356,7 +356,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 branchAccounts={branchAccounts} 
                 onCallUpdate={handleCallUpdate}
               />
-            )}
+            ))}
           </div>
         </main>
       </div>
