@@ -52,23 +52,29 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🎯 Sign-up form submitted');
     setIsLoading(true);
     setError('');
 
     // Client-side validation
     if (signUpData.password !== signUpData.confirmPassword) {
+      console.warn('⚠️ Password mismatch validation failed');
       setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
 
     if (signUpData.password.length < 6) {
+      console.warn('⚠️ Password length validation failed');
       setError('Password must be at least 6 characters long');
       setIsLoading(false);
       return;
     }
 
+    console.log('✅ Client-side validation passed');
+
     try {
+      console.log('🔄 Calling signUp hook...');
       const { data, error } = await signUp(
         signUpData.email,
         signUpData.password,
@@ -81,13 +87,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       );
       
       if (error) {
+        console.error('❌ Sign-up failed with error:', error);
         setError(error.message);
       } else if (data.user) {
+        console.log('✅ Sign-up successful, calling onLogin');
         onLogin(data.user);
       }
     } catch (err) {
+      console.error('❌ Unexpected error during sign-up:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
+      console.log('🏁 Sign-up process finished, setting loading to false');
       setIsLoading(false);
     }
   };

@@ -73,13 +73,19 @@ export const useAuth = () => {
     role?: 'admin' | 'employee';
     poc?: string;
   }) => {
+    console.log('🚀 Starting signUp process with:', { email, userData });
     setLoading(true);
     
     // First, create the auth user
+    console.log('🔄 Calling auth.signUp...');
     const { data, error } = await auth.signUp(email, password, userData);
+    console.log('📊 auth.signUp result:', { data, error });
     
     if (data.user && !error) {
+      console.log('✅ Auth user created successfully:', data.user.id);
+      
       // Then, insert the user profile into public.users table
+      console.log('🔄 Calling db.insertUser...');
       const { error: profileError } = await db.insertUser({
         id: data.user.id,
         email: email,
@@ -90,18 +96,28 @@ export const useAuth = () => {
       });
       
       if (profileError) {
-        console.error('Error creating user profile:', profileError);
+        console.error('❌ Error creating user profile:', profileError);
         setLoading(false);
         return { data, error: profileError };
       }
       
+      console.log('✅ User profile created successfully');
+      
       // Fetch the complete user profile
+      console.log('🔄 Fetching complete user profile...');
       const { data: profile } = await db.getUserProfile(data.user.id);
       if (profile) {
+        console.log('✅ Complete profile fetched, setting user state');
         setUser({ ...data.user, ...profile } as AuthUser);
+      } else {
+        console.warn('⚠️ Profile fetch returned no data, using auth user only');
+        setUser(data.user as AuthUser);
       }
+    } else {
+      console.error('❌ Auth user creation failed:', error);
     }
     
+    console.log('🏁 signUp process completed');
     setLoading(false);
     return { data, error };
   };

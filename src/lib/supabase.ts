@@ -207,6 +207,8 @@ export const db = {
     role?: 'admin' | 'employee';
     poc?: string;
   }) => {
+    console.log('🔄 Starting insertUser with data:', userData);
+    
     const { data, error } = await supabase
       .from('users')
       .insert({
@@ -219,15 +221,35 @@ export const db = {
       })
       .select()
       .single();
+    
+    console.log('📊 insertUser result:', { data, error });
+    
+    if (error) {
+      console.error('❌ insertUser error details:', error);
+    } else {
+      console.log('✅ insertUser successful:', data);
+    }
+    
     return { data, error };
   },
 
   getUserProfile: async (userId: string) => {
+    console.log('🔄 Starting getUserProfile for userId:', userId);
+    
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single();
+    
+    console.log('📊 getUserProfile result:', { data, error });
+    
+    if (error) {
+      console.error('❌ getUserProfile error details:', error);
+    } else {
+      console.log('✅ getUserProfile successful:', data);
+    }
+    
     return { data, error };
   }
 };
