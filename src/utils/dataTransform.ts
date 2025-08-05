@@ -4,10 +4,9 @@ import { Database } from '../types/database';
 // Transform Excel data for Supabase
 export const transformExcelDataForSupabase = (
   excelData: any[],
-  createdBy: string
+  createdBy?: string
 ): Database['public']['Tables']['excel_data']['Insert'][] => {
   return excelData.map(item => ({
-    id: uuidv4(),
     user_id: String(item.UserID),
     date: item.Date,
     name: item.Name,
@@ -16,8 +15,6 @@ export const transformExcelDataForSupabase = (
     last_30_days: Number(item['Last 30 days']),
     pro_rated_ach: Number(item.ProRatedAch),
     short_fall: Number(item.ShortFall),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
   }));
 };
 

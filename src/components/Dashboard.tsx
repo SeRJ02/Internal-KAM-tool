@@ -11,6 +11,8 @@ import UserQueriesContent from './UserQueriesContent';
 import RetailerTagging from './RetailerTagging';
 import UserDataManagement from './UserDataManagement';
 import ComplaintTagsManagement from './ComplaintTagsManagement';
+import { db } from '../lib/supabase';
+import { transformExcelDataForSupabase, transformSupabaseToExcelData } from '../utils/dataTransform';
 
 interface ExcelData {
   UserID: string;
@@ -68,15 +70,8 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [isCreateAccountModalOpen, setIsCreateAccountModalOpen] = useState(false);
   const [isExcelImportOpen, setIsExcelImportOpen] = useState(false);
-  const [excelData, setExcelData] = useState<ExcelData[]>(() => {
-    try {
-      const savedData = localStorage.getItem('kam-excel-data');
-      return savedData ? JSON.parse(savedData) : [];
-    } catch (error) {
-      console.error('Error loading Excel data from localStorage:', error);
-      return [];
-    }
-  });
+  const [excelData, setExcelData] = useState<ExcelData[]>([]);
+  const [isLoadingExcelData, setIsLoadingExcelData] = useState(true);
   const [branchAccounts, setBranchAccounts] = useState<BranchAccount[]>(() => {
     try {
       const savedAccounts = localStorage.getItem('kam-branch-accounts');
@@ -121,6 +116,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [filteredUserQueries, setFilteredUserQueries] = useState<UserQuery[]>([]);
   const [filteredRetailerTags, setFilteredRetailerTags] = useState<RetailerTag[]>([]);
 
+  // Load excel data from Supabase on component mount
+  useEffect(() => {
+    const loadExcelData = async () => {
+      try {
+        setIsLoadingExcelData(true);
+        const pocFilter = user.role === 'employee' ? user.poc : undefined;
+        const { data, error } = await db.getExcelData(pocFilter);
+        
+        if (error) {
+          console.error('Error loading Excel data from Supabase:', error);
+        } else if (data) {
+          const transformedData = transformSupabaseToExcelData(data);
+          setExcelData(transformedData);
+        }
+      } catch (error) {
+        console.error('Error loading Excel data:', error);
+      } finally {
+        setIsLoadingExcelData(false);
+      }
+    };
+
+    if (user?.id) {
+      loadExcelData();
+    }
+  }, [user]);
+
   // Filter data based on user role and POC
   useEffect(() => {
     if (user.role === 'admin') {
@@ -146,14 +167,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       setFilteredRetailerTags([]);
     }
   }, [user, excelData, callRecords, userQueries, retailerTags]);
-  // Save Excel data to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('kam-excel-data', JSON.stringify(excelData));
-    } catch (error) {
-      console.error('Error saving Excel data to localStorage:', error);
-    }
-  }, [excelData]);
 
   // Save branch accounts to localStorage whenever they change
   useEffect(() => {
@@ -191,9 +204,31 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
   }, [retailerTags]);
 
-  const handleDataImported = (data: ExcelData[]) => {
-    setExcelData(data);
-    setActiveTab('data');
+  const handleDataImported = async (data: ExcelData[]) => {
+    try {
+      // Transform data for Supabase
+      const supabaseData = transformExcelDataForSupabase(data, user.id);
+      
+      // Insert data into Supabase
+      const { data: insertedData, error } = await db.insertExcelData(supabaseData);
+      
+      if (error) {
+        console.error('Error inserting Excel data into Supabase:', error);
+        alert('Failed to save data to database. Please try again.');
+        return;
+      }
+      
+      if (insertedData) {
+        // Transform back to frontend format and update state
+        const transformedData = transformSupabaseToExcelData(insertedData);
+        setExcelData(transformedData);
+        setActiveTab('data');
+        alert('Data imported and saved successfully!');
+      }
+    } catch (error) {
+      console.error('Error importing data:', error);
+      alert('Failed to import data. Please try again.');
+    }
   };
 
   const handleAccountCreated = (accountData: BranchAccount) => {
@@ -259,6 +294,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         {/* Main Content */}
         <main className="flex-1 p-6 overflow-auto">
           <div className="max-w-7xl mx-auto">
+            {isLoadingExcelData ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9CE882] mr-3"></div>
+                <span className="text-gray-600">Loading data...</span>
+              </div>
+            ) : (
             {activeTab === 'dashboard' ? (
               <DashboardContent 
                 onNavigateToRetailerTagging={() => setActiveTab('retailer-tagging')}
@@ -315,6 +356,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 branchAccounts={branchAccounts} 
                 onCallUpdate={handleCallUpdate}
               />
+            )}
             )}
           </div>
         </main>

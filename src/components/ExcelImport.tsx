@@ -16,7 +16,7 @@ interface ExcelData {
 interface ExcelImportProps {
   isOpen: boolean;
   onClose: () => void;
-  onDataImported: (data: ExcelData[]) => void;
+  onDataImported: (data: ExcelData[]) => Promise<void>;
 }
 
 const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImported }) => {
@@ -135,15 +135,22 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImport
     }
   };
 
-  const handleImportData = () => {
-    onDataImported(previewData);
-    // Show success message
-    alert('Data imported successfully and saved to local storage!');
-    onClose();
-    // Reset state
-    setPreviewData([]);
-    setUploadStatus('idle');
-    setErrorMessage('');
+  const handleImportData = async () => {
+    try {
+      setIsProcessing(true);
+      await onDataImported(previewData);
+      onClose();
+      // Reset state
+      setPreviewData([]);
+      setUploadStatus('idle');
+      setErrorMessage('');
+    } catch (error) {
+      console.error('Error importing data:', error);
+      setUploadStatus('error');
+      setErrorMessage('Failed to import data. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleClose = () => {
@@ -233,12 +240,24 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImport
                 </div>
                 <button
                   onClick={() => {
+                  disabled={isProcessing}
                     setUploadStatus('idle');
                     setErrorMessage('');
                   }}
-                  className="mt-3 text-sm text-red-600 hover:text-red-800 underline"
+                  className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                    isProcessing
+                      ? 'bg-gray-400 cursor-not-allowed text-white'
+                      : 'text-white bg-gradient-to-r from-[#9CE882] to-[#82E89C] hover:from-[#8BD871] hover:to-[#71D78B]'
+                  }`}
                 >
-                  Try Again
+                  {isProcessing ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Importing...
+                    </div>
+                  ) : (
+                    'Import Data'
+                  )}
                 </button>
               </div>
             )}
