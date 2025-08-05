@@ -88,7 +88,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       
       if (error) {
         console.error('❌ Sign-up failed with error:', error);
-        setError(error.message);
+        // Handle specific error cases with user-friendly messages
+        if (error.message === 'User already registered') {
+          setError('This email is already registered. Please sign in instead or use a different email address.');
+        } else {
+          setError(error.message);
+        }
       } else if (data.user) {
         console.log('✅ Sign-up successful, calling onLogin');
         onLogin(data.user);
