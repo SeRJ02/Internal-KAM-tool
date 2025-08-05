@@ -1,32 +1,46 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Shield, Users } from 'lucide-react';
-import { auth } from '../lib/supabase';
+import { Eye, EyeOff, Shield, Users, UserPlus, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface LoginPageProps {
   onLogin: (userData: any) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+  const { signIn, signUp } = useAuth();
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  
+  // Sign In Form State
   const [credentials, setCredentials] = useState({
     email: '',
     password: ''
   });
+  
+  // Sign Up Form State
+  const [signUpData, setSignUpData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    username: '',
+    name: ''
+  });
+  
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      const { data, error } = await auth.signIn(credentials.email, credentials.password);
+      const { data, error } = await signIn(credentials.email, credentials.password);
       
       if (error) {
         setError(error.message);
       } else if (data.user) {
-        // Pass the Supabase user object to the parent component
         onLogin(data.user);
       }
     } catch (err) {
@@ -36,7 +50,48 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    // Client-side validation
+    if (signUpData.password !== signUpData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    if (signUpData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await signUp(
+        signUpData.email,
+        signUpData.password,
+        {
+          username: signUpData.username,
+          name: signUpData.name,
+          role: 'employee',
+          poc: signUpData.name
+        }
+      );
+      
+      if (error) {
+        setError(error.message);
+      } else if (data.user) {
+        onLogin(data.user);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const handleSignInInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials(prev => ({
       ...prev,
@@ -45,6 +100,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     if (error) setError('');
   };
 
+  const handleSignUpInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSignUpData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    if (error) setError('');
+  };
+
+  const toggleMode = () => {
+    setIsSignUpMode(!isSignUpMode);
+    setError('');
+    setCredentials({ email: '', password: '' });
+    setSignUpData({ email: '', password: '', confirmPassword: '', username: '', name: '' });
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -61,19 +131,36 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             Key Account Management
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to access the dashboard
+            {isSignUpMode ? 'Create your account' : 'Sign in to access the dashboard'}
           </p>
         </div>
 
-        {/* Login Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        {/* Forms */}
+        <form className="mt-8 space-y-6" onSubmit={isSignUpMode ? handleSignUp : handleSignIn}>
           <div className="bg-white rounded-xl shadow-lg p-8 space-y-6">
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                {isSignUpMode ? 'Create Account' : 'Sign In'}
+              </h3>
+              {isSignUpMode && (
+                <button
+                  type="button"
+                  onClick={toggleMode}
+                  className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back to Sign In
+                </button>
+              )}
+            </div>
+
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex">
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-red-800">
-                      Authentication Failed
+                      {isSignUpMode ? 'Sign Up Failed' : 'Authentication Failed'}
                     </h3>
                     <div className="mt-2 text-sm text-red-700">
                       <p>{error}</p>
@@ -83,6 +170,120 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               </div>
             )}
 
+            {isSignUpMode ? (
+              /* Sign Up Form */
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      required
+                      className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
+                      placeholder="Enter your full name"
+                      value={signUpData.name}
+                      onChange={handleSignUpInputChange}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                      Username *
+                    </label>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      required
+                      className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
+                      placeholder="Choose a username"
+                      value={signUpData.username}
+                      onChange={handleSignUpInputChange}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="signup-email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
+                  </label>
+                  <input
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    required
+                    className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
+                    placeholder="Enter your email address"
+                    value={signUpData.email}
+                    onChange={handleSignUpInputChange}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="signup-password" className="block text-sm font-medium text-gray-700 mb-2">
+                      Password *
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="signup-password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        className="appearance-none relative block w-full px-4 py-3 pr-12 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
+                        placeholder="Create password"
+                        value={signUpData.password}
+                        onChange={handleSignUpInputChange}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                      Confirm Password *
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        className="appearance-none relative block w-full px-4 py-3 pr-12 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
+                        placeholder="Confirm password"
+                        value={signUpData.confirmPassword}
+                        onChange={handleSignUpInputChange}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Sign In Form */
+              <>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -95,7 +296,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
                 placeholder="Enter your email address"
                 value={credentials.email}
-                onChange={handleInputChange}
+                onChange={handleSignInInputChange}
               />
             </div>
 
@@ -112,7 +313,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   className="appearance-none relative block w-full px-4 py-3 pr-12 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9CE882] focus:border-[#9CE882] focus:z-10 transition-all duration-200"
                   placeholder="Enter your password"
                   value={credentials.password}
-                  onChange={handleInputChange}
+                  onChange={handleSignInInputChange}
                 />
                 <button
                   type="button"
@@ -127,6 +328,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 </button>
               </div>
             </div>
+              </>
+            )}
 
             <button
               type="submit"
@@ -140,34 +343,67 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               {isLoading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
+                  {isSignUpMode ? 'Creating account...' : 'Signing in...'}
                 </div>
               ) : (
                 <div className="flex items-center">
-                  <Users className="h-4 w-4 mr-2" />
-                  Sign in
+                  {isSignUpMode ? (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Create Account
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-4 w-4 mr-2" />
+                      Sign in
+                    </>
+                  )}
                 </div>
               )}
             </button>
           </div>
         </form>
 
-        {/* Instructions */}
+        {/* Toggle and Instructions */}
         <div className="text-center">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-            <h4 className="text-sm font-medium text-blue-800 mb-3">Demo Accounts</h4>
-            
-            {/* Admin Account */}
-            <div className="bg-white rounded p-3 border border-blue-100">
-              <p className="text-xs font-medium text-blue-800 mb-1">Admin Account (Full Access)</p>
+          {!isSignUpMode && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{' '}
+                <button
+                  onClick={toggleMode}
+                  className="font-medium text-[#9CE882] hover:text-[#8BD871] transition-colors duration-200"
+                >
+                  Sign up here
+                </button>
+              </p>
             </div>
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">Authentication</h4>
-            <p className="text-xs text-blue-700">
-              Sign in with your Supabase account credentials. If you don't have an account, 
-              please contact your administrator to create one for you.
-            </p>
+          )}
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+            <h4 className="text-sm font-medium text-blue-800 mb-3">
+              {isSignUpMode ? 'Account Information' : 'Demo Accounts'}
+            </h4>
+            
+            {isSignUpMode ? (
+              <div className="bg-white rounded p-3 border border-blue-100">
+                <p className="text-xs text-blue-700">
+                  New accounts are created as POC (Point of Contact) users with employee role. 
+                  Your name will be used as your POC identifier for managing assigned accounts.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-white rounded p-3 border border-blue-100">
+                  <p className="text-xs font-medium text-blue-800 mb-1">Admin Account (Full Access)</p>
+                </div>
+                <div className="bg-white rounded p-3 border border-blue-100">
+                  <p className="text-xs text-blue-700">
+                    Sign in with your account credentials or create a new POC account above.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -196,5 +196,38 @@ export const db = {
       .select('*')
       .order('created_at', { ascending: false });
     return { data, error };
+  },
+
+  // User profile operations
+  insertUser: async (userData: {
+    id: string;
+    email: string;
+    username: string;
+    name: string;
+    role?: 'admin' | 'employee';
+    poc?: string;
+  }) => {
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        name: userData.name,
+        role: userData.role || 'employee',
+        poc: userData.poc || userData.name,
+      })
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  getUserProfile: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    return { data, error };
   }
 };
