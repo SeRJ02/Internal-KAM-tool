@@ -160,10 +160,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             {/* Admin Account */}
             <div className="bg-white rounded p-3 border border-blue-100">
               <p className="text-xs font-medium text-blue-800 mb-1">Admin Account (Full Access)</p>
+            </div>
+          </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="text-sm font-medium text-blue-800 mb-2">Authentication</h4>
             <p className="text-xs text-blue-700">
               Sign in with your Supabase account credentials. If you don't have an account, 
               please contact your administrator to create one for you.
             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default LoginPage;
