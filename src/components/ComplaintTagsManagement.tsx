@@ -42,6 +42,11 @@ const ComplaintTagsManagement: React.FC<ComplaintTagsManagementProps> = ({ userR
   useEffect(() => {
     try {
       localStorage.setItem('kam-complaint-tags', JSON.stringify(complaintTags));
+    } catch (error) {
+      console.error('Error saving complaint tags to localStorage:', error);
+    }
+  }, [complaintTags]);
+
   const handleStartEdit = (index: number, currentValue: string) => {
     setEditingIndex(index);
     setEditingValue(currentValue);
