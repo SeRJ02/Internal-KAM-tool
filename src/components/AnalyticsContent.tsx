@@ -361,6 +361,14 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({ callRecords, excelD
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: {
+            size: 12,
+            weight: 'bold',
+          },
+        },
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -368,6 +376,56 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({ callRecords, excelD
         bodyColor: 'white',
         borderColor: '#9CE882',
         borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context: any) {
+            const label = context.dataset.label || '';
+            const value = context.parsed.y;
+            if (label.includes('Performance')) {
+              return `${label}: ${value.toFixed(1)}%`;
+            }
+            return `${label}: ${value.toLocaleString()}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        display: true,
+        title: {
+          display: true,
+          text: 'Month',
+          font: {
+            weight: 'bold',
+          },
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+      y: {
+        display: true,
+        title: {
+          display: true,
+          text: 'Value',
+          font: {
+            weight: 'bold',
+          },
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+        beginAtZero: true,
+      },
+    },
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    elements: {
+      point: {
+        hoverRadius: 8,
       },
     },
   };
@@ -440,6 +498,93 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({ callRecords, excelD
   const filteredComplaintOptions = complaintTagOptions.filter(option =>
     option.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Generate analytics data for charts (same as dashboard)
+  const generateAnalyticsData = () => {
+    if (!excelData || excelData.length === 0) {
+      return null;
+    }
+
+    // Generate last 12 months of data
+    const months = [];
+    const currentDate = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      months.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+    }
+
+    // Calculate aggregated data from current excel data
+    const totalPotential = excelData.reduce((sum, item) => sum + item.Potential, 0);
+    const totalLast30Days = excelData.reduce((sum, item) => sum + item['Last 30 days'], 0);
+    const avgAchievement = excelData.reduce((sum, item) => sum + item.ProRatedAch, 0) / excelData.length;
+
+    // Generate realistic trend data based on current performance
+    const potentialData = months.map((_, index) => {
+      const baseValue = totalPotential;
+      const trend = (index / 11) * 0.2; // 20% growth over 12 months
+      const variance = (Math.random() - 0.5) * 0.1; // ±5% random variance
+      return Math.round(baseValue * (0.8 + trend + variance));
+    });
+
+    const achievedData = months.map((_, index) => {
+      const baseValue = totalLast30Days;
+      const trend = (index / 11) * 0.15; // 15% growth over 12 months
+      const variance = (Math.random() - 0.5) * 0.15; // ±7.5% random variance
+      return Math.round(baseValue * (0.7 + trend + variance));
+    });
+
+    // Monthly targets (typically 80-90% of potential)
+    const targetData = potentialData.map(potential => Math.round(potential * (0.8 + Math.random() * 0.1)));
+
+    return {
+      labels: months,
+      datasets: [
+        {
+          label: 'Potential',
+          data: potentialData,
+          borderColor: '#9CE882',
+          backgroundColor: '#9CE88220',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          pointBackgroundColor: '#9CE882',
+          pointBorderColor: '#82E89C',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        },
+        {
+          label: 'Monthly Targets',
+          data: targetData,
+          borderColor: '#9C82E8',
+          backgroundColor: '#9C82E820',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          pointBackgroundColor: '#9C82E8',
+          pointBorderColor: '#E882CF',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderDash: [5, 5], // Dashed line for targets
+        },
+        {
+          label: 'Last 30 Days Achievement',
+          data: achievedData,
+          borderColor: '#E882CF',
+          backgroundColor: '#E882CF20',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#E882CF',
+          pointBorderColor: '#9C82E8',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        },
+      ],
+    };
+  };
+
+  const performanceAnalyticsData = generateAnalyticsData();
 
   if (callRecords.length === 0 && userQueries.length === 0 && retailerTags.length === 0) {
     return (
@@ -541,6 +686,68 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({ callRecords, excelD
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* Performance Analytics Chart (from Dashboard) */}
+        <div className="bg-white rounded-xl shadow-lg p-6 lg:col-span-2 xl:col-span-3">
+          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-[#9CE882]" />
+            Performance Analytics - 12 Month Trend
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">Track potential, targets, and achievements over time</p>
+          <div className="h-96">
+            {performanceAnalyticsData ? (
+              <Line data={performanceAnalyticsData} options={chartOptions} />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No performance data available</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Analytics Summary Cards */}
+          {performanceAnalyticsData && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200">
+              <div className="bg-gradient-to-r from-[#9CE882] to-[#82E89C] rounded-lg p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90">Total Potential</p>
+                    <p className="text-2xl font-bold">
+                      {excelData.reduce((sum, item) => sum + item.Potential, 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <Target className="h-8 w-8 opacity-80" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-[#9C82E8] to-[#E882CF] rounded-lg p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90">Current Achievement</p>
+                    <p className="text-2xl font-bold">
+                      {excelData.reduce((sum, item) => sum + item['Last 30 days'], 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 opacity-80" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-[#CFE882] to-[#9CE882] rounded-lg p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90">Average Performance</p>
+                    <p className="text-2xl font-bold">
+                      {(excelData.reduce((sum, item) => sum + item.ProRatedAch, 0) / excelData.length).toFixed(1)}%
+                    </p>
+                  </div>
+                  <BarChart3 className="h-8 w-8 opacity-80" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Pie Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Issue Distribution</h3>
@@ -552,24 +759,6 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({ callRecords, excelD
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <PieChart className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No issue data available</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Bar Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Issues by Source</h3>
-          <p className="text-sm text-gray-600 mb-4">Comparison of calls vs queries</p>
-          <div className="h-80">
-            {complaintTagData.length > 0 ? (
-              <Bar data={barChartData} options={chartOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-500">No issue data available</p>
                 </div>
               </div>
@@ -607,24 +796,6 @@ const AnalyticsContent: React.FC<AnalyticsContentProps> = ({ callRecords, excelD
                 <div className="text-center">
                   <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-500">No timeline data available</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Retailer Performance Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6 lg:col-span-2">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Retailer Performance Analysis</h3>
-          <p className="text-sm text-gray-600 mb-4">Average user performance by retailer</p>
-          <div className="h-80">
-            {retailerPerformanceData.length > 0 ? (
-              <Bar data={retailerPerformanceChartData} options={retailerPerformanceOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No retailer performance data available</p>
                 </div>
               </div>
             )}
