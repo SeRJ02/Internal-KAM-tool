@@ -25,6 +25,23 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   user,
   filteredData
 }) => {
+  // Dynamic messages for the dialogue box
+  const [currentMessageIndex, setCurrentMessageIndex] = React.useState(0);
+  const messages = [
+    "Oh no, go to performance data and check out all users",
+    "call your users and help them grow gang 💪",
+    "how's the josh?"
+  ];
+
+  // Cycle through messages every 4 seconds
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentMessageIndex((prevIndex) => (prevIndex + 1) % messages.length);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [messages.length]);
+
   // Calculate stats based on filtered data
   const calculateStats = () => {
     if (!filteredData) {
@@ -169,6 +186,60 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           <div className="hidden md:block">
             <div className="bg-gradient-to-r from-[#9CE882] to-[#82E89C] rounded-lg p-4">
               <Users className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* GIF with Dynamic Dialogue Box */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center justify-between">
+          {/* Dynamic Dialogue Box */}
+          <div className="flex-1 mr-6">
+            <div className="relative bg-gradient-to-r from-[#9CE882] to-[#82E89C] rounded-lg p-4 shadow-md">
+              {/* Speech bubble tail */}
+              <div className="absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2">
+                <div className="w-0 h-0 border-l-[15px] border-l-[#9CE882] border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent"></div>
+              </div>
+              
+              {/* Message content */}
+              <div className="text-white">
+                <p className="text-lg font-medium leading-relaxed">
+                  {messages[currentMessageIndex]}
+                </p>
+              </div>
+              
+              {/* Message indicators */}
+              <div className="flex justify-center mt-3 space-x-2">
+                {messages.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentMessageIndex 
+                        ? 'bg-white' 
+                        : 'bg-white bg-opacity-50'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* User greeting */}
+            <div className="mt-3 text-center">
+              <p className="text-sm text-gray-600">
+                Hey <span className="font-medium text-[#9CE882]">{user?.name}</span>! 👋
+              </p>
+            </div>
+          </div>
+
+          {/* GIF */}
+          <div className="flex-shrink-0">
+            <div className="w-48 h-32 rounded-lg overflow-hidden shadow-lg border-2 border-gray-200">
+              <img 
+                src="/WhatsApp Video 2025-08-06 at 9.37.48 AM.gif" 
+                alt="Performance Animation" 
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
