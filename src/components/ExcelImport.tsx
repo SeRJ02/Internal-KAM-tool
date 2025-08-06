@@ -16,7 +16,7 @@ interface ExcelData {
 interface ExcelImportProps {
   isOpen: boolean;
   onClose: () => void;
-  onDataImported: (data: ExcelData[]) => Promise<void>;
+  onDataImported: (data: ExcelData[]) => void;
 }
 
 const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImported }) => {
@@ -138,7 +138,7 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImport
   const handleImportData = async () => {
     try {
       setIsProcessing(true);
-      await onDataImported(previewData);
+      onDataImported(previewData);
       onClose();
       // Reset state
       setPreviewData([]);

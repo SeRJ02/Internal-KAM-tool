@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Shield, Users, UserPlus, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
 
 interface LoginPageProps {
   onLogin: (userData: any) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
-  const { signIn, signUp } = useAuth();
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   
   // Sign In Form State
@@ -30,82 +28,77 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  // Demo accounts for testing
+  const testAccounts = [
+    { email: 'admin@example.com', password: 'admin123', name: 'Admin User', role: 'admin', username: 'admin' },
+    { email: 'john.doe@example.com', password: 'john123', name: 'John Doe', role: 'employee', username: 'john.doe', poc: 'John Doe' },
+    { email: 'jane.smith@example.com', password: 'jane123', name: 'Jane Smith', role: 'employee', username: 'jane.smith', poc: 'Jane Smith' }
+  ];
+
+  const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    try {
-      const { data, error } = await signIn(credentials.email, credentials.password);
-      
-      if (error) {
-        setError(error.message);
-      } else if (data.user) {
-        onLogin(data.user);
+    // Simulate API call delay
+    setTimeout(() => {
+      const user = testAccounts.find(
+        account => account.email === credentials.email && account.password === credentials.password
+      );
+
+      if (user) {
+        onLogin(user);
+      } else {
+        setError('Invalid email or password');
       }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
       setIsLoading(false);
-    }
+    }, 1000);
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🎯 Sign-up form submitted');
     setIsLoading(true);
     setError('');
 
     // Client-side validation
     if (signUpData.password !== signUpData.confirmPassword) {
-      console.warn('⚠️ Password mismatch validation failed');
       setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
 
     if (signUpData.password.length < 6) {
-      console.warn('⚠️ Password length validation failed');
       setError('Password must be at least 6 characters long');
       setIsLoading(false);
       return;
     }
 
-    console.log('✅ Client-side validation passed');
-
-    try {
-      console.log('🔄 Calling signUp hook...');
-      const { data, error } = await signUp(
-        signUpData.email,
-        signUpData.password,
-        {
-          username: signUpData.username,
-          name: signUpData.name,
-          role: 'employee',
-          poc: signUpData.name
-        }
-      );
-      
-      if (error) {
-        console.error('❌ Sign-up failed with error:', error);
-        // Handle specific error cases with user-friendly messages
-        if (error.message === 'User already registered') {
-          setError('This email is already registered. Please sign in instead or use a different email address.');
-        } else {
-          setError(error.message);
-        }
-      } else if (data.user) {
-        console.log('✅ Sign-up successful, calling onLogin');
-        onLogin(data.user);
-      }
-    } catch (err) {
-      console.error('❌ Unexpected error during sign-up:', err);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      console.log('🏁 Sign-up process finished, setting loading to false');
+    // Check if email already exists
+    const existingUser = testAccounts.find(account => account.email === signUpData.email);
+    if (existingUser) {
+      setError('This email is already registered. Please sign in instead or use a different email address.');
       setIsLoading(false);
+      return;
     }
+
+    // Simulate API call delay
+    setTimeout(() => {
+      const newUser = {
+        email: signUpData.email,
+        name: signUpData.name,
+        username: signUpData.username,
+        role: 'employee' as const,
+        poc: signUpData.name,
+        id: Date.now().toString()
+      };
+
+      // In a real app, you would save this to a database
+      // For now, we'll just log them in
+      onLogin(newUser);
+      setIsLoading(false);
+    }, 1000);
   };
+
   const handleSignInInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials(prev => ({

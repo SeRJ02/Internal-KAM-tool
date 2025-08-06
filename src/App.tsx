@@ -4,7 +4,7 @@ import Dashboard from './components/Dashboard';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
   const handleLogin = (userData: any) => {
     setIsAuthenticated(true);
