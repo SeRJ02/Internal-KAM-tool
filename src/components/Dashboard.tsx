@@ -241,7 +241,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -253,7 +253,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="ml-16 flex flex-col min-h-screen transition-all duration-300">
         {/* Top Bar */}
         <TopBar user={user} onLogout={onLogout} />
         
