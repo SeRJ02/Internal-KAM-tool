@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import CreateAccountModal from './CreateAccountModal';
@@ -260,7 +260,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         {/* Main Content */}
         <main className="flex-1 p-6 overflow-auto">
           <div className="max-w-7xl mx-auto">
-            activeTab === 'dashboard' ? (
+            {activeTab === 'dashboard' ? (
               <DashboardContent 
                 onNavigateToRetailerTagging={() => setActiveTab('retailer-tagging')}
                 onNavigateToQueries={() => setActiveTab('queries')}
@@ -316,7 +316,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 branchAccounts={branchAccounts} 
                 onCallUpdate={handleCallUpdate}
               />
-            ))}
+            )}
+          </div>
         </main>
       </div>
 
