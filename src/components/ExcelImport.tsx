@@ -2,6 +2,122 @@ import React, { useState } from 'react';
 import { Upload, FileSpreadsheet, X, CheckCircle, AlertCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+// Date format recognition and parsing utility
+const parseDate = (dateValue: any): string => {
+  if (!dateValue) return '';
+  
+  // If it's already a string in a valid format, return as is
+  if (typeof dateValue === 'string' && dateValue.trim()) {
+    const trimmedDate = dateValue.trim();
+    
+    // Check if it's already in dd/mm/yyyy format
+    const ddmmyyyyRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+    if (ddmmyyyyRegex.test(trimmedDate)) {
+      return trimmedDate;
+    }
+    
+    // Try to parse various date formats
+    const dateFormats = [
+      // mm/dd/yyyy
+      /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/(\d{4})$/,
+      // yyyy-mm-dd
+      /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/,
+      // dd-mm-yyyy
+      /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\d{4})$/,
+      // mm-dd-yyyy
+      /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-(\d{4})$/,
+      // dd.mm.yyyy
+      /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(\d{4})$/,
+      // mm.dd.yyyy
+      /^(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01])\.(\d{4})$/
+    ];
+    
+    // mm/dd/yyyy format
+    if (dateFormats[0].test(trimmedDate)) {
+      const [, month, day, year] = trimmedDate.match(dateFormats[0])!;
+      return `${day}/${month}/${year}`;
+    }
+    
+    // yyyy-mm-dd format
+    if (dateFormats[1].test(trimmedDate)) {
+      const [, year, month, day] = trimmedDate.match(dateFormats[1])!;
+      return `${day}/${month}/${year}`;
+    }
+    
+    // dd-mm-yyyy format
+    if (dateFormats[2].test(trimmedDate)) {
+      const [, day, month, year] = trimmedDate.match(dateFormats[2])!;
+      return `${day}/${month}/${year}`;
+    }
+    
+    // mm-dd-yyyy format
+    if (dateFormats[3].test(trimmedDate)) {
+      const [, month, day, year] = trimmedDate.match(dateFormats[3])!;
+      return `${day}/${month}/${year}`;
+    }
+    
+    // dd.mm.yyyy format
+    if (dateFormats[4].test(trimmedDate)) {
+      const [, day, month, year] = trimmedDate.match(dateFormats[4])!;
+      return `${day}/${month}/${year}`;
+    }
+    
+    // mm.dd.yyyy format
+    if (dateFormats[5].test(trimmedDate)) {
+      const [, month, day, year] = trimmedDate.match(dateFormats[5])!;
+      return `${day}/${month}/${year}`;
+    }
+    
+    // Try parsing as a JavaScript Date
+    const parsedDate = new Date(trimmedDate);
+    if (!isNaN(parsedDate.getTime())) {
+      const day = String(parsedDate.getDate()).padStart(2, '0');
+      const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+      const year = parsedDate.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  }
+  
+  // If it's a number (Excel serial date)
+  if (typeof dateValue === 'number') {
+    // Excel serial date starts from 1900-01-01
+    const excelEpoch = new Date(1900, 0, 1);
+    const date = new Date(excelEpoch.getTime() + (dateValue - 1) * 24 * 60 * 60 * 1000);
+    
+    if (!isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  }
+  
+  // If it's a Date object
+  if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+    const day = String(dateValue.getDate()).padStart(2, '0');
+    const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+    const year = dateValue.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  
+  // If all else fails, try to convert to string and parse
+  try {
+    const dateStr = String(dateValue);
+    const parsedDate = new Date(dateStr);
+    if (!isNaN(parsedDate.getTime())) {
+      const day = String(parsedDate.getDate()).padStart(2, '0');
+      const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+      const year = parsedDate.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (error) {
+    console.warn('Failed to parse date:', dateValue);
+  }
+  
+  // Return original value as string if all parsing fails
+  return String(dateValue);
+};
+
 interface ExcelData {
   UserID: string;
   Date: string;
@@ -97,6 +213,16 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImport
         rowData.Name = String(rowData.Name || '');
         rowData.POC = String(rowData.POC || '');
 
+        // Parse and validate date with automatic format recognition
+        const parsedDate = parseDate(rowData.Date);
+        rowData.Date = parsedDate;
+        
+        // Validate the parsed date is in correct format
+        const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+        if (!dateRegex.test(parsedDate)) {
+          console.warn(`Date format warning in row ${index + 2}: "${rowData.Date}" was parsed to "${parsedDate}"`);
+        }
+
         // Validate and convert numeric fields
         const numericFields = ['Potential', 'Last 30 days', 'ShortFall'];
         numericFields.forEach(field => {
@@ -106,12 +232,6 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImport
           }
           rowData[field] = value;
         });
-
-        // Validate date format (mm/dd/yyyy)
-        const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-        if (!dateRegex.test(rowData.Date)) {
-          throw new Error(`Invalid date format in row ${index + 2}. Expected format: dd/mm/yyyy`);
-        }
 
         // Calculate ProRatedAch as (Last 30 days / Potential) * 100
         const potential = rowData.Potential;
@@ -200,9 +320,10 @@ const ExcelImport: React.FC<ExcelImportProps> = ({ isOpen, onClose, onDataImport
                 <p className="text-sm text-gray-600 mb-4">
                   Drag and drop your Excel file here, or click to browse
                 </p>
-                <p className="text-xs text-gray-500 mb-4">
-                  Required headers: {expectedHeaders.join(', ')} (ProRatedAch will be auto-calculated)
-                </p>
+                <div className="text-xs text-gray-500 mb-4 space-y-1">
+                  <p>Required headers: {expectedHeaders.join(', ')} (ProRatedAch will be auto-calculated)</p>
+                  <p className="text-green-600">✓ Supports multiple date formats: dd/mm/yyyy, mm/dd/yyyy, yyyy-mm-dd, dd-mm-yyyy, dd.mm.yyyy, Excel dates</p>
+                </div>
                 <input
                   type="file"
                   accept=".xlsx,.xls"
