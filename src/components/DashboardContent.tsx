@@ -178,7 +178,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Stats Grid - Takes 2 columns */}
         <div className="xl:col-span-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {stats.map((stat, index) => (
               <div 
                 key={index} 
