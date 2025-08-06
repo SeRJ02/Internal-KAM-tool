@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { PieChart, BarChart3, Search, Filter, TrendingUp, Users, Calendar, MessageSquare, Tag } from 'lucide-react';
+import { PieChart, BarChart3, Search, Filter, TrendingUp, Users, Calendar, MessageSquare, Tag, Target } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
