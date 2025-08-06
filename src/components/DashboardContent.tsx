@@ -174,32 +174,117 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <div 
-            key={index} 
-            onClick={index === 0 ? onNavigateToPerformanceData : index === 1 ? onNavigateToUnderperformingUsers : undefined}
-            className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200 ${
-              (index === 0 || index === 1) ? 'cursor-pointer hover:scale-105 transform transition-transform' : ''
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                <p className={`text-sm mt-2 ${
-                  stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.change} from last month
-                </p>
+      {/* Stats and Underperforming Users Layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Stats Grid - Takes 2 columns */}
+        <div className="xl:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, index) => (
+              <div 
+                key={index} 
+                onClick={index === 0 ? onNavigateToPerformanceData : index === 1 ? onNavigateToUnderperformingUsers : undefined}
+                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200 ${
+                  (index === 0 || index === 1) ? 'cursor-pointer hover:scale-105 transform transition-transform' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                    <p className={`text-sm mt-2 ${
+                      stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {stat.change} from last month
+                    </p>
+                  </div>
+                  <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-lg flex items-center justify-center`}>
+                    <stat.icon className="h-6 w-6 text-white" />
+                  </div>
+                </div>
               </div>
-              <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-lg flex items-center justify-center`}>
-                <stat.icon className="h-6 w-6 text-white" />
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
+        </div>
+
+        {/* Top 5 Underperforming Users - Takes 1 column */}
+        <div className="xl:col-span-1">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
+              Top 5 Underperforming Users
+            </h3>
+            
+            {filteredData && filteredData.excelData.length > 0 ? (
+              <div className="space-y-3">
+                {/* Get top 5 underperforming users */}
+                {filteredData.excelData
+                  .filter(user => user.ProRatedAch < 50)
+                  .sort((a, b) => a.ProRatedAch - b.ProRatedAch)
+                  .slice(0, 5)
+                  .map((user, index) => (
+                    <div 
+                      key={user.UserID} 
+                      className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100 hover:bg-red-100 transition-colors duration-200 cursor-pointer"
+                      onClick={onNavigateToUnderperformingUsers}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 text-sm">{user.Name}</p>
+                        <p className="text-xs text-gray-600">ID: {user.UserID}</p>
+                        <p className="text-xs text-gray-500">POC: {user.POC}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                          {user.ProRatedAch}%
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          #{index + 1}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                
+                {/* Show message if no underperforming users */}
+                {filteredData.excelData.filter(user => user.ProRatedAch < 50).length === 0 && (
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Users className="h-6 w-6 text-green-600" />
+                    </div>
+                    <p className="text-sm text-gray-600">No underperforming users</p>
+                    <p className="text-xs text-gray-500">All users above 50% achievement</p>
+                  </div>
+                )}
+                
+                {/* Show message if less than 5 underperforming users */}
+                {filteredData.excelData.filter(user => user.ProRatedAch < 50).length > 0 && 
+                 filteredData.excelData.filter(user => user.ProRatedAch < 50).length < 5 && (
+                  <div className="text-center py-2">
+                    <p className="text-xs text-gray-500">
+                      Showing {filteredData.excelData.filter(user => user.ProRatedAch < 50).length} of 5 users
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No data available</p>
+                <p className="text-xs text-gray-400">Import Excel data to see underperforming users</p>
+              </div>
+            )}
+            
+            {/* View All Button */}
+            {filteredData && filteredData.excelData.filter(user => user.ProRatedAch < 50).length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={onNavigateToUnderperformingUsers}
+                  className="w-full text-center text-sm text-[#9CE882] hover:text-[#8BD871] font-medium transition-colors duration-200"
+                >
+                  View All Underperforming Users →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
